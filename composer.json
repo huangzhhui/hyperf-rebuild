@@ -1,0 +1,23 @@
+{
+    "name": "huangzh/hyperf-rebuild",
+    "type": "project",
+    "authors": [
+        {
+            "name": "huangzhhui",
+            "email": "huangzhwork@gmail.com"
+        }
+    ],
+    "require": {
+        "symfony/console": "^5.1",
+        "symfony/finder": "^5.1"
+    },
+    "require-dev": {
+        "swoole/ide-helper": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Rebuild\\": "src/"
+        }
+    }
+}
