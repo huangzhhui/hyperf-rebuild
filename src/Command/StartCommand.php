@@ -36,7 +36,7 @@ class StartCommand extends Command
         $configs = $config->get('server');
         $serverFactory = new ServerFactory();
         $serverFactory->configure($configs);
-        $serverFactory->getServer()->start();
+        $serverFactory->start();
         return 1;
     }
 

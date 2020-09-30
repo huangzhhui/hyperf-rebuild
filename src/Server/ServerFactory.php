@@ -27,5 +27,9 @@ class ServerFactory
         return $this->server;
     }
 
+    public function start()
+    {
+        $this->getServer()->start();
+    }
 
 }

@@ -3,7 +3,6 @@
 namespace Rebuild\Server;
 
 
-use Swoole\Coroutine\Server as SwooleCoServer;
 use Swoole\Server as SwooleServer;
 use Swoole\Http\Server as SwooelHttpServer;
 
@@ -14,11 +13,6 @@ class Server implements ServerInterface
      * @var SwooleServer
      */
     protected $server;
-
-    /**
-     * @var array
-     */
-    protected $onRequestCallbacks = [];
 
     public function init(array $config): ServerInterface
     {
@@ -43,10 +37,10 @@ class Server implements ServerInterface
 
     protected function registerSwooleEvents(array $callbacks)
     {
-        foreach ($callbacks as $swolleEvent => $callback) {
+        foreach ($callbacks as $swooleEvent => $callback) {
             [$class, $method] = $callback;
             $instance = new $class();
-            $this->server->on($swolleEvent, [$instance, $method]);
+            $this->server->on($swooleEvent, [$instance, $method]);
         }
     }
 }
