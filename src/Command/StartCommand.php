@@ -30,14 +30,13 @@ class StartCommand extends Command
         $this->setName('start')->setDescription('启动服务');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $config = $this->config;
         $configs = $config->get('server');
         $serverFactory = new ServerFactory();
         $serverFactory->configure($configs);
-        $serverFactory->getServer()->start();
-        return 1;
+        $serverFactory->start();
     }
 
 
