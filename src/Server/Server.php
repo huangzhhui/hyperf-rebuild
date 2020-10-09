@@ -3,6 +3,7 @@
 namespace Rebuild\Server;
 
 
+use Rebuild\HttpServer\Router\DispatherFactory;
 use Swoole\Coroutine\Server as SwooleCoServer;
 use Swoole\Server as SwooleServer;
 use Swoole\Http\Server as SwooelHttpServer;
@@ -45,7 +46,11 @@ class Server implements ServerInterface
     {
         foreach ($callbacks as $swolleEvent => $callback) {
             [$class, $method] = $callback;
-            $instance = new $class();
+            if ($class === \Rebuild\HttpServer\Server::class) {
+                $instance = new $class(new DispatherFactory());
+            } else {
+                $instance = new $class();
+            }
             $this->server->on($swolleEvent, [$instance, $method]);
         }
     }
