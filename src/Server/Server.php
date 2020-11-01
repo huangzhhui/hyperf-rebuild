@@ -52,6 +52,9 @@ class Server implements ServerInterface
                 $instance = new $class();
             }
             $this->server->on($swolleEvent, [$instance, $method]);
+            if (method_exists($instance, 'initCoreMiddleware')) {
+                $instance->initCoreMiddleware();
+            }
         }
     }
 }

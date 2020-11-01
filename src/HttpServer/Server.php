@@ -6,7 +6,11 @@ use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 use Hyperf\Utils\Context;
 use Hyperf\Utils\Str;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Rebuild\Config\ConfigFactory;
+use Rebuild\Dispatcher\HttpRequestHandler;
+use Rebuild\HttpServer\Router\Dispatched;
 use Rebuild\HttpServer\Router\DispatherFactory;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
@@ -27,11 +31,24 @@ class Server
      * @var \Rebuild\HttpServer\Contract\CoreMiddlewareInterface
      */
     protected $coreMiddleware;
+    protected $globalMiddlewares;
+
+    /**
+     * @var DispatherFactory
+     */
+    protected $dispatcherFactory;
 
     public function __construct(DispatherFactory $dispatcherFactory)
     {
-        $this->dispatcher = $dispatcherFactory->getDispathcer('http');
-        $this->coreMiddleware = new CoreMiddleware($dispatcherFactory);
+        $this->dispatcherFactory = $dispatcherFactory;
+        $this->dispatcher = $this->dispatcherFactory->getDispathcer('http');
+    }
+
+    public function initCoreMiddleware()
+    {
+        $config = (new ConfigFactory())();
+        $this->globalMiddlewares = $config->get('middlewares');
+        $this->coreMiddleware = new CoreMiddleware($this->dispatcherFactory);
     }
 
     public function onRequest(SwooleRequest $request, SwooleResponse $response): void
@@ -40,29 +57,35 @@ class Server
         /** @var \Psr\Http\Message\ResponseInterface $psr7Response */
         [$psr7Request, $psr7Response] = $this->initRequestAndResponse($request, $response);
 
-        $httpMethod = $psr7Request->getMethod();
-        $uri = $psr7Request->getUri()->getPath();
-
         $psr7Request = $this->coreMiddleware->dispatch($psr7Request);
 
-        $middlewareA = function ($value, $middleware) {
-            $value = $value + 1;
-            return $middleware($value, function ($value) {
-                $value = $value + 2;
-                return $value;
-            });
-        };
-        $value = 1;
-        $value = $middlewareA($value, function ($value, $middleware) {
-            $value = $value + 2;
-            // 执行下一个匿名函数之前
-            $response = $middleware($value);
-            $response = $response->withBody();
-            return $response;
-        });
+        $httpMethod = $psr7Request->getMethod();
+        $path = $psr7Request->getUri()->getPath();
 
+        $middlewares = $this->globalMiddlewares ?? [];
 
-        $response->end($value);
+        $dispatched = $psr7Request->getAttribute(Dispatched::class);
+        if ($dispatched instanceof Dispatched && $dispatched->isFound()) {
+            $registeredMiddlewares = MiddlewareManager::get($path, $httpMethod) ?? [];
+            $middlewares = array_merge($middlewares, $registeredMiddlewares);
+        }
+
+        $requestHandler = new HttpRequestHandler($middlewares, $this->coreMiddleware);
+        $psr7Response = $requestHandler->handle($psr7Request);
+
+        /*
+         * Headers
+         */
+        foreach ($psr7Response->getHeaders() as $key => $value) {
+            $response->header($key, implode(';', $value));
+        }
+
+        /*
+         * Status code
+         */
+        $response->status($psr7Response->getStatusCode());
+        $response->end($psr7Response->getBody()->getContents());
+        var_dump('response end');
     }
 
     protected function initRequestAndResponse(SwooleRequest $request, SwooleResponse $response): array

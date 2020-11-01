@@ -6,6 +6,7 @@ namespace Rebuild\HttpServer\Router;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 use Hyperf\HttpServer\Router\Router;
+use Rebuild\HttpServer\MiddlewareManager;
 use function FastRoute\simpleDispatcher;
 
 class DispatherFactory
@@ -37,7 +38,13 @@ class DispatherFactory
             $this->dispatchers[$serverName] = simpleDispatcher(function (RouteCollector $r) {
                 foreach ($this->routes as $route) {
                     [$httpMethod, $path, $handler] = $route;
+                    if (isset($route[3])) {
+                        $options = $route[3];
+                    }
                     $r->addRoute($httpMethod, $path, $handler);
+                    if (isset($options['middlewares']) && is_array($options['middlewares'])) {
+                        MiddlewareManager::addMiddlewares($path, $httpMethod, $options['middlewares']);
+                    }
                 }
             });
         }
